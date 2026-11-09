@@ -1,15 +1,15 @@
 // POST /api/checkout — перераховує суму на сервері за content/products.json
 // і створює рахунок в еквайринзі Monobank. Повертає {pageUrl} для оплати.
-import { json, loadProducts } from "../_lib/common.js";
+import { json, loadProducts, orderText, sendTelegram } from "../_lib/common.js";
 
 const clean = (v, max) => String(v || "").replace(/[\u0000-\u001f]/g, " ").trim().slice(0, max);
 
 export async function onRequestPost(context) {
   const { request, env } = context;
-  if (!env.MONO_TOKEN || !env.ORDERS) return json({ error: "not_configured" }, 503);
-
   let body;
   try { body = await request.json(); } catch (e) { return json({ error: "bad_json" }, 400); }
+  const cod = body.method === "cod";
+  if (cod ? !(env.TG_BOT_TOKEN && env.TG_CHAT_ID) : !(env.MONO_TOKEN && env.ORDERS)) return json({ error: "not_configured" }, 503);
 
   const c = body.customer || {};
   const customer = {
@@ -41,6 +41,16 @@ export async function onRequestPost(context) {
 
   const orderId = "N" + Date.now().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase().padStart(2, "0");
   const origin = new URL(request.url).origin;
+
+  if (cod) {
+    // Накладений платіж: одразу надсилаємо замовлення в Telegram.
+    const order = { orderId, method: "cod", total, lines, customer, status: "cod", notified: false, createdAt: Date.now() };
+    const sent = await sendTelegram(env, orderText(order));
+    if (!sent) return json({ error: "telegram_failed" }, 502);
+    order.notified = true;
+    if (env.ORDERS) await env.ORDERS.put("order:" + orderId, JSON.stringify(order), { expirationTtl: 60 * 60 * 24 * 45 });
+    return json({ orderId, cod: true });
+  }
 
   const res = await fetch("https://api.monobank.ua/api/merchant/invoice/create", {
     method: "POST",

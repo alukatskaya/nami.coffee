@@ -21,7 +21,8 @@ export function money(n) {
 
 export function orderText(order) {
   const c = order.customer;
-  const out = [`Оплачене замовлення NAMI ${order.orderId}`];
+  const cod = order.method === "cod";
+  const out = [cod ? `Нове замовлення NAMI ${order.orderId} (накладений платіж, оплата при отриманні)` : `Оплачене замовлення NAMI ${order.orderId}`];
   order.lines.forEach((l, i) => out.push(`${i + 1}. ${l.name}, ${l.size} × ${l.qty} = ${money(l.unit * l.qty)}`));
   out.push(`Разом: ${money(order.total)}`, "", `Отримувач: ${c.name}`, `Телефон: ${c.phone}`, `Нова пошта: ${c.city}, ${c.branch}`);
   if (c.comment) out.push(`Коментар: ${c.comment}`);

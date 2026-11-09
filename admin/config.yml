@@ -97,5 +97,7 @@ collections:
           - { label: Контакти (заголовок), name: contactTitle, widget: string }
           - { label: "Telegram (нік без @)", name: telegram, widget: string }
           - { label: "Instagram (нік без @)", name: instagram, widget: string }
+          - { label: "Спосіб оплати: накладений платіж (показувати на сайті)", name: payCod, widget: boolean, default: true }
+          - { label: "Спосіб оплати: картка онлайн Monobank (вмикайте, коли підключена оплата)", name: payCard, widget: boolean, default: false }
           - { label: Фраза внизу сторінок, name: closing, widget: string }
           - { label: Підпис у футері, name: footer, widget: string }

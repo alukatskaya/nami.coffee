@@ -182,3 +182,9 @@ h1.page, h2.page { font-family: var(--serif); font-weight: 300; font-size: clamp
 .menu[data-tier="filter"] .origin, .page-light .origin { color: var(--copper); }
 .origin::before { content: ""; display: inline-block; width: 22px; height: 1px; background: currentColor; vertical-align: middle; margin-right: 12px; } /* Логотип-картинка */
 .logoimg { display: block; height: 30px; width: auto; }
+
+/* Вибір способу оплати */
+.pays { display: grid; gap: 10px; margin: 6px 0 2px; }
+.pm { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid rgba(46,46,48,.35); cursor: pointer; font-size: 15px; }
+.pm input { accent-color: var(--copper); width: 18px; height: 18px; margin: 0; }
+.pm:has(input:checked) { border-color: var(--copper); background: rgba(142,90,52,.07); }

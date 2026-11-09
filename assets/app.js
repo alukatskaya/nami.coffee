@@ -331,7 +331,7 @@
       inp.value = form[id] || ""; inp.addEventListener("input", function () { form[id] = inp.value; lsSet(FORM_KEY, form); });
       return h("div", { "class": "fld" }, [h("label", { "for": "f-" + id }, [label]), inp]);
     }
-    var err = h("p", { "class": "err", role: "alert" }), box = h("div", { "class": "sum-box" }), done = h("div", { "class": "done", hidden: "hidden" });
+    var err = h("p", { "class": "err", role: "alert" }), box = h("div", { "class": "sum-box" });
     function renderSum() {
       var cur = lines(); box.innerHTML = "";
       cur.forEach(function (l) {
@@ -359,47 +359,63 @@
         "\nРазом: " + money(total()) + "\n\nДоставка: Нова пошта\nОтримувач: " + form.name.trim() + "\nТелефон: " + form.phone.trim() + "\nМісто: " + form.city.trim() +
         "\nВідділення/поштомат: " + form.branch.trim() + (form.comment.trim() ? "\nКоментар: " + form.comment.trim() : "");
     }
-    var payBtn = h("button", { "class": "btn solid", type: "button", style: "width:100%", onclick: pay }, ["Оплатити карткою"]);
-    var tgBtn = h("button", { "class": "btn", type: "button", style: "width:100%", onclick: viaTelegram }, ["Замовити через Telegram"]);
-    function pay() {
+    var canCard = S.payCard !== false, canCod = S.payCod !== false;
+    if (!canCard && !canCod) canCod = true;
+    var method = canCard ? "card" : "cod";
+    var fine = h("p", { "class": "fine" });
+    var payBtn = h("button", { "class": "btn solid", type: "button", style: "width:100%", onclick: submit });
+    function sync() {
+      payBtn.textContent = method === "card" ? "Оплатити карткою" : "Підтвердити замовлення";
+      fine.textContent = method === "card"
+        ? "Оплата проходить на захищеній сторінці Monobank. Дані картки ми не отримуємо."
+        : "Оплата при отриманні на відділенні Нової пошти. Комісія Нової пошти за накладений платіж діє за тарифами перевізника. Після оформлення ми напишемо вам для підтвердження.";
+    }
+    function opt(val, label) {
+      var inp = h("input", { type: "radio", name: "paym", value: val });
+      inp.checked = method === val;
+      inp.addEventListener("change", function () { method = val; sync(); });
+      return h("label", { "class": "pm" }, [inp, h("span", {}, [label])]);
+    }
+    var pays = (canCard && canCod) ? h("div", { "class": "pays", role: "radiogroup", "aria-label": "Спосіб оплати" }, [opt("card", "Оплата карткою онлайн"), opt("cod", "Накладений платіж (оплата при отриманні)")]) : null;
+    function submit() {
       if (!valid()) return;
-      payBtn.disabled = true; payBtn.textContent = "Створюємо оплату…";
-      var body = { items: lines().map(function (l) { return { slug: l.p.slug, size: l.size, qty: l.qty }; }), customer: { name: form.name.trim(), phone: form.phone.trim(), city: form.city.trim(), branch: form.branch.trim(), comment: form.comment.trim() } };
+      var cod = method === "cod";
+      payBtn.disabled = true; payBtn.textContent = cod ? "Відправляємо замовлення…" : "Створюємо оплату…";
+      var body = { method: method, items: lines().map(function (l) { return { slug: l.p.slug, size: l.size, qty: l.qty }; }), customer: { name: form.name.trim(), phone: form.phone.trim(), city: form.city.trim(), branch: form.branch.trim(), comment: form.comment.trim() } };
       fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { ok: r.ok, j: j }; }); })
-        .then(function (x) { if (x.ok && x.j.pageUrl) { location.href = x.j.pageUrl; } else { throw new Error("fail"); } })
+        .then(function (x) {
+          if (x.ok && cod && x.j.orderId) { var id = x.j.orderId; clearCart(); location.href = "/thanks?o=" + encodeURIComponent(id) + "&m=cod"; }
+          else if (x.ok && x.j.pageUrl) { location.href = x.j.pageUrl; }
+          else { throw new Error("fail"); }
+        })
         .catch(function () {
-          payBtn.disabled = false; payBtn.textContent = "Оплатити карткою";
-          err.textContent = "Оплата карткою зараз недоступна. Оформіть замовлення через Telegram, і ми надішлемо посилання на оплату.";
+          payBtn.disabled = false; sync();
+          err.textContent = cod
+            ? "Не вдалося надіслати замовлення. Спробуйте ще раз або напишіть нам у Telegram @" + tg() + "."
+            : "Оплата карткою зараз недоступна." + (canCod ? " Оберіть накладений платіж або напишіть нам у Telegram @" + tg() + "." : " Напишіть нам у Telegram @" + tg() + ".");
         });
-    }
-    function viaTelegram() {
-      if (!valid()) return;
-      var txt = orderText(), url = "https://t.me/" + tg() + "?text=" + encodeURIComponent(txt);
-      try { navigator.clipboard.writeText(txt); } catch (e) {}
-      window.open(url, "_blank", "noopener");
-      done.hidden = false; done.innerHTML = "";
-      var copy = h("button", { "class": "btn", type: "button", onclick: function () { try { navigator.clipboard.writeText(txt); copy.textContent = "Скопійовано"; } catch (e) {} } }, ["Скопіювати текст"]);
-      done.appendChild(h("h2", {}, ["Залишився один крок"]));
-      done.appendChild(h("p", {}, ["Ми відкрили Telegram з готовим замовленням. Натисніть «Відправити». Якщо текст не з’явився, відкрийте чат кнопкою нижче й вставте скопійований текст."]));
-      done.appendChild(h("pre", {}, [txt]));
-      done.appendChild(h("div", { "class": "actions" }, [h("a", { "class": "btn solid", href: url, target: "_blank", rel: "noopener" }, ["Відкрити Telegram @" + tg()]), copy,
-        h("button", { "class": "btn", type: "button", onclick: function () { clearCart(); location.href = "/"; } }, ["Відправлено, очистити кошик"])]));
-      done.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
     }
     main.appendChild(h("div", { "class": "co" }, [h("h1", {}, ["Оформлення"]),
       h("div", { "class": "form" }, [h("h2", {}, ["Доставка Новою поштою"]),
         fld("name", "Ім’я та прізвище отримувача", "text", "name"), fld("phone", "Телефон", "tel", "tel"), fld("city", "Місто", "text", "address-level2"),
         fld("branch", "Відділення або поштомат Нової пошти (номер)", "text", "off"), fld("comment", "Коментар до замовлення (за бажанням)", "text", "off", true),
-        err, h("div", { "class": "actions" }, [payBtn, tgBtn]),
-        h("p", { "class": "fine" }, ["Оплата проходить на захищеній сторінці Monobank. Дані картки ми не отримуємо."]), done]),
+        pays, err, h("div", { "class": "actions" }, [payBtn]), fine]),
       h("div", {}, [box])]));
+    sync();
     renderSum();
   }
 
   /* ---------- thanks ---------- */
   function renderThanks(main) {
-    var o = new URLSearchParams(location.search).get("o") || "";
+    var qs = new URLSearchParams(location.search), o = qs.get("o") || "";
+    if (qs.get("m") === "cod" && o) {
+      main.appendChild(h("div", { "class": "thanks" }, [h("h1", {}, ["Дякуємо, замовлення прийнято"]),
+        h("p", {}, ["Номер замовлення: " + o + ". Ми вже отримали його й скоро напишемо вам для підтвердження. Оплата при отриманні на відділенні Нової пошти."]),
+        h("a", { "class": "btn dark", href: "/#catalog" }, ["До каталогу"])]));
+      clearCart();
+      return;
+    }
     var title = h("h1", {}, ["Перевіряємо оплату…"]), text = h("p", {}, ["Це займе кілька секунд."]);
     main.appendChild(h("div", { "class": "thanks" }, [title, text, h("a", { "class": "btn dark", href: "/#catalog" }, ["До каталогу"])]));
     var tries = 0;
