@@ -104,7 +104,7 @@
     cntEl = h("span", { "class": "cnt", "data-n": "0" }, ["0"]);
     var cartBtn = h("button", { "class": "cartbtn", type: "button", "aria-label": "Відкрити кошик", onclick: openSheet }, ["Кошик", cntEl]);
     var hdr = h("header", { "class": "hdr" }, [
-      h("a", { "class": "logo", href: "/", "aria-label": "NAMI — на головну" }, [S.brand || "NAMI"]),
+      h("a", { "class": "logo", href: "/", "aria-label": "NAMI — на головну" },[S.logo ? h("img", { "class": "logoimg", src: S.logo, alt: S.brand || "NAMI" }) : (S.brand || "NAMI")]),
       h("nav", { "class": "nav", "aria-label": "Головне меню" }, [
         h("a", { href: "/#catalog" }, ["Кава"]), h("a", { href: "/about.html" }, ["Про NAMI"]), h("a", { href: "/info.html" }, ["Доставка та контакти"])
       ]),
