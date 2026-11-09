@@ -181,32 +181,133 @@
     return waveCanvas(p.wave, BG[p.tier] || BG.espresso, (p.slug.length % 7) + 1, live);
   }
 
+  /* ---------- water (WebGL) ---------- */
+  /* Вода зверху: шейдер WebGL. Один відтінок синього, світло лише на гребінцях. */
+  var WATER_FS = [
+  "#ifdef GL_FRAGMENT_PRECISION_HIGH", "precision highp float;", "#else", "precision mediump float;", "#endif",
+  "uniform vec2 uRes; uniform float uTime; uniform vec3 uPtr; uniform float uFine; uniform float uGlow; uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uHi;",
+  "float hgt(vec2 p, float t) {",
+  "  p += 0.22 * vec2(sin(p.y * 2.1 + t * 0.21), cos(p.x * 1.7 - t * 0.17));",
+  "  float h = 0.0;",
+  "  for (int i = 0; i < 8; i++) {",
+  "    float fi = float(i); float ang = fi * 1.37 + 0.4; vec2 d = vec2(cos(ang), sin(ang));",
+  "    float k = 3.0 + fi * 3.4; float w = 0.45 + fi * 0.16;",
+  "    float amp = 1.0 / pow(k, 1.45 - uFine * 0.7);",
+  "    h += sin(dot(p, d) * k + t * w + fi * 2.1) * amp;",
+  "  }",
+  "  return h;",
+  "}",
+  "void main() {",
+  "  vec2 uv = gl_FragCoord.xy / uRes.y; vec2 p = uv * 2.6; float t = uTime;",
+  "  float e = 0.003;",
+  "  float h0 = hgt(p, t), hx = hgt(p + vec2(e, 0.0), t), hy = hgt(p + vec2(0.0, e), t);",
+  "  vec2 q = uv - uPtr.xy; float r = length(q);",
+  "  float rip = uPtr.z * sin(r * 30.0 - t * 5.0) * exp(-r * 5.5) * 0.05;",
+  "  h0 += rip; hx += rip; hy += rip;",
+  "  vec3 n = normalize(vec3(-(hx - h0) / e * 0.32, -(hy - h0) / e * 0.32, 1.0));",
+  "  vec3 L = normalize(vec3(-0.45, 0.55, 0.7));",
+  "  float diff = clamp(dot(n, L), 0.0, 1.0);",
+  "  float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 30.0);",
+  "  vec3 col = mix(uDeep, uMid, pow(diff, 2.2) * 1.5);",
+  "  float y = gl_FragCoord.y / uRes.y; float x = gl_FragCoord.x / uRes.x;",
+  "  float calm = 1.0 - 0.55 * smoothstep(0.62, 0.30, abs(y - 0.5) * 1.6 + 0.0) ;",
+  "  col += uHi * spec * uGlow * (0.45 + 0.55 * calm);",
+  "  float band = smoothstep(0.16, 0.32, y) * (1.0 - smoothstep(0.58, 0.76, y));",
+  "  col = mix(col, mix(uDeep, col, 0.45), band * 0.7);",
+  "  float vig = smoothstep(1.15, 0.2, length(vec2(x - 0.5, (y - 0.5) * 0.75)));",
+  "  col *= 0.55 + 0.45 * vig;",
+  "  gl_FragColor = vec4(col, 1.0);",
+  "}"
+  ].join("\n");
+  function initWater(cv, opt) {
+    var gl = cv.getContext("webgl", { antialias: false, alpha: false, powerPreference: "low-power" }) || cv.getContext("experimental-webgl");
+    if (!gl) return null;
+    function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; }
+    var vs = sh(gl.VERTEX_SHADER, "attribute vec2 a; void main(){ gl_Position = vec4(a, 0.0, 1.0); }"), fs = sh(gl.FRAGMENT_SHADER, WATER_FS);
+    if (!vs || !fs) return null;
+    var pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) return null;
+    gl.useProgram(pr);
+    var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    var loc = gl.getAttribLocation(pr, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+    var U = {}; ["uRes", "uTime", "uPtr", "uFine", "uGlow", "uDeep", "uMid", "uHi"].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
+    var o = opt || {};
+    gl.uniform1f(U.uFine, o.fine == null ? .5 : o.fine); gl.uniform1f(U.uGlow, o.glow == null ? .5 : o.glow);
+    gl.uniform3fv(U.uDeep, o.deep || [.047, .063, .102]); gl.uniform3fv(U.uMid, o.mid || [.16, .21, .35]); gl.uniform3fv(U.uHi, o.hi || [.62, .68, .80]);
+    return {
+      render: function (t, ptr) {
+        var s = Math.min(window.devicePixelRatio || 1, 2) * (o.scale || .7), w = Math.max(2, Math.round(cv.clientWidth * s)), h = Math.max(2, Math.round(cv.clientHeight * s));
+        if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+        gl.viewport(0, 0, w, h); gl.uniform2f(U.uRes, w, h); gl.uniform1f(U.uTime, t);
+        var p = ptr || [0.5, 0.5, 0]; gl.uniform3f(U.uPtr, p[0] * (w / h), p[1], p[2]);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+    };
+  }
+
   /* ---------- home ---------- */
-  var HERO = [
-    { b: .60, a: .035, f: 1.6, ph: .2, x: .3, sp: .22, c: "#2A3650", al: 1 }, { b: .69, a: .030, f: 2.1, ph: 1.5, x: .3, sp: .30, c: "#3B4A6B", al: .95 },
-    { b: .79, a: .025, f: 1.5, ph: 3.0, x: .25, sp: .26, c: "#C9A57A", al: .55 }, { b: .90, a: .020, f: 1.9, ph: 4.3, x: .2, sp: .34, c: "#EDE3D6", al: .92 }
+  /* Гірські хвилі: один відтінок, багато шарів. Далекі шари світліші й м'якші, ближні темніші. */
+  var RIDGES = [
+    { b: .60, a: .100, f: 1.15, ph: .4, sp: .050, c: [78, 94, 128], al: .42, ln: .20 },
+    { b: .67, a: .097, f: 1.40, ph: 2.1, sp: .068, c: [62, 78, 112], al: .55, ln: .17 },
+    { b: .74, a: .09, f: 1.70, ph: 3.7, sp: .088, c: [46, 60, 92], al: .72, ln: .14 },
+    { b: .81, a: .08, f: 2.00, ph: 5.2, sp: .110, c: [31, 42, 68], al: .88, ln: .11 },
+    { b: .89, a: .065, f: 2.40, ph: 1.0, sp: .135, c: [19, 26, 38], al: 1, ln: .08 }
   ];
+  function ridge(u) { var s = Math.sin(u), s2 = Math.sin(u * 2.13 + 1.3), s3 = Math.sin(u * .47 + .6); return (1 - Math.sqrt(s * s + .035)) * .78 + (1 - Math.sqrt(s2 * s2 + .06)) * .22 + s3 * .25; }
+  function drawRidges(ctx, W, H, t, rise, lift, px, sc) {
+    var bgc = "19,26,38";
+    RIDGES.forEach(function (l, i) {
+      var step = 6, x, y, a = l.a * H * (1 + sc * .6), top = H, pts = [];
+      for (x = 0; x <= W + step; x += step) {
+        var u = x / W * Math.PI * 2 * l.f + l.ph + t * l.sp * 6.2832;
+        y = l.b * H - ridge(u) * a + rise;
+        var d = (x - px) / (W * .22); y -= lift * H * .06 * Math.exp(-d * d) * (1 - i * .15);
+        pts.push(x, y); if (y < top) top = y;
+      }
+      var g = ctx.createLinearGradient(0, top, 0, H);
+      g.addColorStop(0, "rgba(" + l.c.join(",") + "," + l.al + ")"); g.addColorStop(1, "rgba(" + bgc + "," + Math.min(1, l.al + .1) + ")");
+      ctx.beginPath(); ctx.moveTo(0, H);
+      for (var k = 0; k < pts.length; k += 2) ctx.lineTo(pts[k], pts[k + 1]);
+      ctx.lineTo(W, H); ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath();
+      for (k = 0; k < pts.length; k += 2) { if (k) ctx.lineTo(pts[k], pts[k + 1]); else ctx.moveTo(pts[k], pts[k + 1]); }
+      ctx.strokeStyle = "rgba(237,227,214," + l.ln + ")"; ctx.lineWidth = 1; ctx.stroke();
+    });
+  }
   function heroEl() {
     var h1 = h("h1", {}, []);
     String(S.heroTitle || "").split(" ").forEach(function (w, i) { h1.appendChild(h("span", { "class": "w" }, [h("span", { "class": "wi", style: "--i:" + i }, [w])])); });
     var cv = h("canvas", { "aria-hidden": "true" }), hint = h("div", { "class": "hero-hint" }, [S.heroHint || ""]);
     var el = h("header", { "class": "hero" }, [cv, h("div", { "class": "hero-top" }, [h("span", {}, [S.season || ""])]),
       h("div", { "class": "hero-main" }, [h1, h("p", {}, [S.heroText || ""])]), hint]);
-    var px = 0, strength = 0, t0 = performance.now();
-    function move(e) { var r = el.getBoundingClientRect(); px = e.clientX - r.left; strength = Math.min(1, strength + .35); hint.classList.add("gone"); }
+    var px = 0, py = 0, strength = 0, t0 = performance.now(), W0 = 1, H0 = 1;
+    var water = initWater(cv, { fine: .55, glow: .30, scale: .6, mid: [.12, .17, .28] }), running = true;
+    if (!water) { var nc = h("canvas", { "aria-hidden": "true" }); cv.parentNode.replaceChild(nc, cv); cv = nc; }
+    function move(e) {
+      var r = el.getBoundingClientRect(); px = e.clientX - r.left; py = e.clientY - r.top; W0 = r.width || 1; H0 = r.height || 1;
+      strength = Math.min(1, strength + .35); hint.classList.add("gone");
+    }
     el.addEventListener("pointermove", move); el.addEventListener("pointerdown", move);
     function ease(x) { return 1 - Math.pow(1 - x, 3); }
     function draw(now) {
-      var t = (now - t0) / 1000, ctx = fit(cv), W = cv.clientWidth, H = cv.clientHeight;
-      if (W && H) {
-        ctx.clearRect(0, 0, W, H);
-        var rise = reduce ? 0 : (1 - ease(Math.min(1, t / 2.6))) * H * .5, sc = Math.min(1, window.scrollY / Math.max(1, H));
-        var layers = HERO.map(function (l) { var o = {}; for (var k in l) o[k] = l[k]; o.a = l.a * (1 + sc * .9); return o; });
-        drawLayers(ctx, W, H, layers, reduce ? 4 : t + window.scrollY * .004, function (x, i) { var d = (x - px) / (W * .2); return rise - strength * H * .07 * Math.exp(-d * d) * (1 - i * .18); });
+      var t = (now - t0) / 1000;
+      if (water) {
+        water.render(reduce ? 6 : 6 + t * .55 + window.scrollY * .002, [px / W0, 1 - py / H0, strength]);
+      } else {
+        var ctx = fit(cv), W = cv.clientWidth, H = cv.clientHeight;
+        if (W && H) {
+          ctx.clearRect(0, 0, W, H);
+          var rise = reduce ? 0 : (1 - ease(Math.min(1, t / 2.6))) * H * .5, sc = Math.min(1, window.scrollY / Math.max(1, H));
+          drawRidges(ctx, W, H, reduce ? 4 : t + window.scrollY * .004, rise, strength, px, sc);
+        }
       }
-      strength *= .94;
-      if (!reduce) requestAnimationFrame(draw);
+      strength *= .95;
+      if (!reduce && running) requestAnimationFrame(draw);
     }
+    if (window.IntersectionObserver) new IntersectionObserver(function (en) {
+      var vis = en[0].isIntersecting; if (vis && !running && !reduce) { running = true; requestAnimationFrame(draw); } else if (!vis) running = false;
+    }).observe(el);
     requestAnimationFrame(draw);
     return el;
   }
