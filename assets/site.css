@@ -180,4 +180,5 @@ h1.page, h2.page { font-family: var(--serif); font-weight: 300; font-size: clamp
 /* Назви країн: акцент */
 .origin { margin: 14px 0 0; font-size: 15px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: #C9966A; }
 .menu[data-tier="filter"] .origin, .page-light .origin { color: var(--copper); }
-.origin::before { content: ""; display: inline-block; width: 22px; height: 1px; background: currentColor; vertical-align: middle; margin-right: 12px; }
+.origin::before { content: ""; display: inline-block; width: 22px; height: 1px; background: currentColor; vertical-align: middle; margin-right: 12px; } /* Логотип-картинка */
+.logoimg { display: block; height: 30px; width: auto; }
