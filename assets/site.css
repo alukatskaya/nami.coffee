@@ -177,3 +177,7 @@ h1.page, h2.page { font-family: var(--serif); font-weight: 300; font-size: clamp
 .ftr .links a { text-decoration: none; opacity: .8; }
 .ftr small { opacity: .6; }
 @media (min-width: 760px) { .ftr { padding: 80px 56px 80px; } }
+/* Назви країн: акцент */
+.origin { margin: 14px 0 0; font-size: 15px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: #C9966A; }
+.menu[data-tier="filter"] .origin, .page-light .origin { color: var(--copper); }
+.origin::before { content: ""; display: inline-block; width: 22px; height: 1px; background: currentColor; vertical-align: middle; margin-right: 12px; }
