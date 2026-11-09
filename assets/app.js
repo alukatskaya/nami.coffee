@@ -125,7 +125,7 @@
     document.addEventListener("keydown", function (e) { if (e.key === "Escape") closeSheet(); });
 
     var ig = String(S.instagram || "").replace(/^@/, "");
-    byId("ftr").appendChild(h("footer", { "class": "ftr" }, [h("div", { "class": "wrap" }, [
+    var footEl = h("footer", { "class": "ftr" }, [h("div", { "class": "wrap" }, [
       h("p", { "class": "closing" }, [S.closing || ""]),
       h("div", { "class": "links" }, [
         h("a", { href: "https://t.me/" + tg(), target: "_blank", rel: "noopener" }, ["Telegram @" + tg()]),
@@ -133,7 +133,9 @@
         h("a", { href: "/about.html" }, ["Про NAMI"]), h("a", { href: "/info.html" }, ["Доставка та оплата"])
       ]),
       h("small", {}, [S.footer || ""])
-    ])]));
+    ])]);
+    byId("ftr").appendChild(footEl);
+    addWaterBg(footEl, "waterbg", { w: .35, water: { fine: .55, glow: .14, scale: .5, mid: [.11, .15, .25] } });
     refreshCart();
   }
 
@@ -254,6 +256,34 @@
     };
   }
 
+  function waterLayer(host, cv, o) {
+    var water = initWater(cv, o.water);
+    if (!water) return null;
+    var t0 = performance.now(), rips = new Float32Array(24), ri = 0, lx = -999, ly = -999, vis = true, on = true, raf = 0;
+    function drop(x, y, w) {
+      var r = cv.getBoundingClientRect(), H = r.height || 1;
+      rips[ri * 4] = (x - r.left) / H; rips[ri * 4 + 1] = 1 - (y - r.top) / H; rips[ri * 4 + 2] = (performance.now() - t0) / 1000; rips[ri * 4 + 3] = w; ri = (ri + 1) % 6;
+    }
+    function pt(e) { var p = (e.touches && e.touches[0]) || e, dx = p.clientX - lx, dy = p.clientY - ly; if (dx * dx + dy * dy > 3600) { lx = p.clientX; ly = p.clientY; drop(p.clientX, p.clientY, o.w); } }
+    host.addEventListener("pointermove", function (e) { if (e.pointerType !== "touch") pt(e); });
+    host.addEventListener("touchstart", function (e) { lx = -999; pt(e); }, { passive: true });
+    function frame(now) {
+      raf = 0; if (!vis || !on) return;
+      water.render(reduce ? 6 : 6 + (now - t0) / 1000 * .4 + window.scrollY * .0015, (now - t0) / 1000, reduce ? null : rips);
+      if (!reduce) raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (!raf && vis && on) raf = requestAnimationFrame(frame); }
+    if (window.IntersectionObserver) new IntersectionObserver(function (en) { vis = en[0].isIntersecting; kick(); }).observe(cv); else kick();
+    return { setOn: function (v) { on = v; kick(); } };
+  }
+  function addWaterBg(host, cls, opt) {
+    var cv = h("canvas", { "aria-hidden": "true" }), box = h("div", { "class": cls, "aria-hidden": "true" }, [cv]);
+    host.insertBefore(box, host.firstChild);
+    var ctl = waterLayer(host, cv, opt);
+    if (!ctl) { box.parentNode.removeChild(box); return null; }
+    return ctl;
+  }
+
   /* ---------- home ---------- */
   /* Гірські хвилі: один відтінок, багато шарів. Далекі шари світліші й м'якші, ближні темніші. */
   var RIDGES = [
@@ -372,11 +402,13 @@
         if (i === active) return; active = i;
         tabs.querySelectorAll(".tab").forEach(function (b, j) { b.setAttribute("aria-selected", j === i ? "true" : "false"); });
         menu.setAttribute("data-tier", t.id);
+        if (menuWater) menuWater.setOn(t.id !== "filter");
         var cur = gridWrap.firstChild; if (cur) cur.classList.add("swap");
         setTimeout(function () { lede.textContent = t.lede || ""; fill(i); }, reduce ? 0 : 280);
       } }, [t.title]);
     }));
     menu.appendChild(h("div", { "class": "wrap" }, [tabs, lede, h("p", { "class": "hint" }, [S.catalogHint || ""]), gridWrap]));
+    var menuWater = addWaterBg(menu, "waterbg menu-water", { w: .3, water: { fine: .55, glow: .10, scale: .45, deep: [.085, .11, .17], mid: [.15, .20, .31] } });
     main.appendChild(menu);
     if (tiers.length) fill(0);
     if (location.hash === "#catalog") setTimeout(function () { menu.scrollIntoView(); }, 50);
