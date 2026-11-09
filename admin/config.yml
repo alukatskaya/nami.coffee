@@ -67,6 +67,7 @@ collections:
         format: json
         fields:
           - { label: Назва бренду, name: brand, widget: string }
+           - { label: "Логотип (картинка PNG або SVG, необов'язково)", name: logo, widget: image, required: false, hint: "Якщо порожньо, у шапці показується текст NAMI" }
           - { label: Дата карти (шапка головного екрана), name: season, widget: string }
           - { label: Головний заголовок, name: heroTitle, widget: string }
           - { label: Текст під заголовком, name: heroText, widget: text }
