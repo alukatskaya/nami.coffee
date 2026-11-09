@@ -1,0 +1,301 @@
+{
+  "items": [
+    {
+      "slug": "guatemala-huehuetenango",
+      "tier": "espresso",
+      "country": "Guatemala",
+      "name": "Huehuetenango",
+      "process": "washed",
+      "notes": "dried fruits · green apple · milk chocolate",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "250 g",
+          "price": 365
+        },
+        {
+          "size": "1 kg",
+          "price": 1060
+        }
+      ],
+      "photo": "",
+      "wave": {
+        "colors": [
+          "#3A4A78",
+          "#6F7F9E",
+          "#A5694B",
+          "#C9A57A"
+        ],
+        "amp": 12,
+        "freq": 1.3
+      },
+      "available": true
+    },
+    {
+      "slug": "el-salvador-puerto-arturo",
+      "tier": "espresso",
+      "country": "El Salvador",
+      "name": "Puerto Arturo",
+      "process": "anaerobic natural",
+      "notes": "grilled pineapple · lime · rose jam · cherry plum",
+      "variety": "Пакамара",
+      "altitude": "1200–1550 м",
+      "description": "",
+      "prices": [
+        {
+          "size": "250 g",
+          "price": 500
+        },
+        {
+          "size": "1 kg",
+          "price": 1610
+        }
+      ],
+      "photo": "/assets/uploads/el-salvador-puerto-arturo.jpg",
+      "wave": {
+        "colors": [
+          "#E8C27A",
+          "#D9A441",
+          "#C7843A",
+          "#F0D9A8"
+        ],
+        "amp": 32,
+        "freq": 2.6
+      },
+      "available": true
+    },
+    {
+      "slug": "ethiopia-yirgacheffe-espresso",
+      "tier": "espresso",
+      "country": "Ethiopia",
+      "name": "Yirgacheffe",
+      "process": "natural",
+      "notes": "apricot · black tea · bergamot",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "250 g",
+          "price": 500
+        },
+        {
+          "size": "1 kg",
+          "price": 1590
+        }
+      ],
+      "photo": "/assets/uploads/ethiopia-yirgacheffe-espresso.jpg",
+      "wave": {
+        "colors": [
+          "#E6D19A",
+          "#C9A57A",
+          "#8C7A5B",
+          "#3A4A78"
+        ],
+        "amp": 14,
+        "freq": 1.2
+      },
+      "available": true
+    },
+    {
+      "slug": "honduras-montecillos",
+      "tier": "espresso",
+      "country": "Honduras",
+      "name": "Montecillos",
+      "process": "anaerobic natural",
+      "notes": "yellow plum · amaretto · raisins · cane sugar",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "250 g",
+          "price": 410
+        },
+        {
+          "size": "1 kg",
+          "price": 1300
+        }
+      ],
+      "photo": "/assets/uploads/honduras-montecillos.jpg",
+      "wave": {
+        "colors": [
+          "#B8793B",
+          "#8E5A34",
+          "#4A3F66",
+          "#E0B96A"
+        ],
+        "amp": 30,
+        "freq": 2.8
+      },
+      "available": true
+    },
+    {
+      "slug": "rwanda-cyato-rusumo",
+      "tier": "filter",
+      "country": "Rwanda",
+      "name": "Cyato Rusumo",
+      "process": "washed",
+      "notes": "dried fruits · green apple · mulberry",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "100 g",
+          "price": 210
+        },
+        {
+          "size": "250 g",
+          "price": 520
+        }
+      ],
+      "photo": "/assets/uploads/rwanda-cyato-rusumo.jpg",
+      "wave": {
+        "colors": [
+          "#7F8F6E",
+          "#A9B493",
+          "#3A4A78",
+          "#D6C9A8"
+        ],
+        "amp": 11,
+        "freq": 1.3
+      },
+      "available": true
+    },
+    {
+      "slug": "colombia-tolima",
+      "tier": "filter",
+      "country": "Colombia",
+      "name": "Tolima",
+      "process": "natural",
+      "notes": "dark rum · blackberry · red natural wine",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "100 g",
+          "price": 195
+        },
+        {
+          "size": "250 g",
+          "price": 500
+        }
+      ],
+      "photo": "/assets/uploads/colombia-tolima.jpg",
+      "wave": {
+        "colors": [
+          "#2F3A63",
+          "#4A3F66",
+          "#7A4B3A",
+          "#B8793B"
+        ],
+        "amp": 13,
+        "freq": 1.2
+      },
+      "available": true
+    },
+    {
+      "slug": "ethiopia-yirgacheffe-filter",
+      "tier": "filter",
+      "country": "Ethiopia",
+      "name": "Yirgacheffe",
+      "process": "natural",
+      "notes": "apricot · black tea · bergamot",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "100 g",
+          "price": 195
+        },
+        {
+          "size": "250 g",
+          "price": 500
+        }
+      ],
+      "photo": "/assets/uploads/ethiopia-yirgacheffe-filter.jpg",
+      "wave": {
+        "colors": [
+          "#E6D19A",
+          "#C9A57A",
+          "#8C7A5B",
+          "#3A4A78"
+        ],
+        "amp": 14,
+        "freq": 1.2
+      },
+      "available": true
+    },
+    {
+      "slug": "rwanda-cyato-mataba",
+      "tier": "filter",
+      "country": "Rwanda",
+      "name": "Cyato Mataba",
+      "process": "natural",
+      "notes": "raspberry · jasmine · marzipan",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "100 g",
+          "price": 215
+        },
+        {
+          "size": "250 g",
+          "price": 530
+        }
+      ],
+      "photo": "/assets/uploads/rwanda-cyato-mataba.jpg",
+      "wave": {
+        "colors": [
+          "#E3B866",
+          "#D6C9A8",
+          "#7F8CA8",
+          "#B8793B"
+        ],
+        "amp": 18,
+        "freq": 1.8
+      },
+      "available": true
+    },
+    {
+      "slug": "kenya-trans-nzoia",
+      "tier": "filter",
+      "country": "Kenya",
+      "name": "Trans-Nzoia",
+      "process": "washed",
+      "notes": "blackberry · cherry plum · rosehip",
+      "variety": "",
+      "altitude": "",
+      "description": "",
+      "prices": [
+        {
+          "size": "100 g",
+          "price": 200
+        },
+        {
+          "size": "250 g",
+          "price": 500
+        }
+      ],
+      "photo": "/assets/uploads/kenya-trans-nzoia.jpg",
+      "wave": {
+        "colors": [
+          "#2F3A63",
+          "#4A3F66",
+          "#A5694B",
+          "#C9A57A"
+        ],
+        "amp": 12,
+        "freq": 1.4
+      },
+      "available": true
+    }
+  ]
+}
