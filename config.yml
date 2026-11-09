@@ -1,14 +1,14 @@
-# Налаштування адмінки (Sveltia CMS). Єдине, що треба змінити: repo нижче.
+# Налаштування адмінки (Sveltia CMS).
 backend:
   name: github
-  repo: YOUR_GITHUB_USERNAME/namiorder   # <- ваш акаунт GitHub / назва репозиторію
+  repo: alukatskaya/namiorder
   branch: main
 
 media_folder: assets/uploads
 public_folder: /assets/uploads
 locale: uk
-site_url: https://namiorder.ua
-display_url: https://namiorder.ua
+site_url: https://nami.coffee
+display_url: https://nami.coffee
 
 collections:
   - name: coffee
