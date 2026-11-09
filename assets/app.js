@@ -185,8 +185,19 @@
   /* Вода зверху: шейдер WebGL. Один відтінок синього, світло лише на гребінцях. */
   var WATER_FS = [
   "#ifdef GL_FRAGMENT_PRECISION_HIGH", "precision highp float;", "#else", "precision mediump float;", "#endif",
-  "uniform vec2 uRes; uniform float uTime; uniform vec3 uPtr; uniform float uFine; uniform float uGlow; uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uHi;",
-  "float hgt(vec2 p, float t) {",
+  "uniform vec2 uRes; uniform float uTime; uniform float uNow; uniform vec4 uRip[6]; uniform float uFine; uniform float uGlow; uniform vec3 uDeep; uniform vec3 uMid; uniform vec3 uHi;",
+  "float ripple(vec2 uv) {",
+    "  float s = 0.0;",
+    "  for (int i = 0; i < 6; i++) {",
+    "    vec4 rp = uRip[i]; float age = uNow - rp.z;",
+    "    if (rp.w > 0.0 && age > 0.0 && age < 4.5) {",
+    "      float front = length(uv - rp.xy) - age * 0.30;",
+    "      s += rp.w * exp(-age * 0.8) * exp(-front * front * 70.0) * sin(front * 34.0) * 0.22;",
+    "    }",
+    "  }",
+    "  return s;",
+    "}",
+    "float hgt(vec2 p, float t) {",
   "  p += 0.22 * vec2(sin(p.y * 2.1 + t * 0.21), cos(p.x * 1.7 - t * 0.17));",
   "  float h = 0.0;",
   "  for (int i = 0; i < 8; i++) {",
@@ -201,10 +212,8 @@
   "  vec2 uv = gl_FragCoord.xy / uRes.y; vec2 p = uv * 2.6; float t = uTime;",
   "  float e = 0.003;",
   "  float h0 = hgt(p, t), hx = hgt(p + vec2(e, 0.0), t), hy = hgt(p + vec2(0.0, e), t);",
-  "  vec2 q = uv - uPtr.xy; float r = length(q);",
-  "  float rip = uPtr.z * sin(r * 30.0 - t * 5.0) * exp(-r * 5.5) * 0.05;",
-  "  h0 += rip; hx += rip; hy += rip;",
-  "  vec3 n = normalize(vec3(-(hx - h0) / e * 0.32, -(hy - h0) / e * 0.32, 1.0));",
+  "  h0 += ripple(uv); hx += ripple(uv + vec2(e / 2.6, 0.0)); hy += ripple(uv + vec2(0.0, e / 2.6));",
+    "  vec3 n = normalize(vec3(-(hx - h0) / e * 0.32, -(hy - h0) / e * 0.32, 1.0));",
   "  vec3 L = normalize(vec3(-0.45, 0.55, 0.7));",
   "  float diff = clamp(dot(n, L), 0.0, 1.0);",
   "  float spec = pow(max(dot(reflect(-L, n), vec3(0.0, 0.0, 1.0)), 0.0), 30.0);",
@@ -230,17 +239,17 @@
     gl.useProgram(pr);
     var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
     var loc = gl.getAttribLocation(pr, "a"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-    var U = {}; ["uRes", "uTime", "uPtr", "uFine", "uGlow", "uDeep", "uMid", "uHi"].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
-    var o = opt || {};
+    var U = {}; ["uRes", "uTime", "uNow", "uRip", "uFine", "uGlow", "uDeep", "uMid", "uHi"].forEach(function (n) { U[n] = gl.getUniformLocation(pr, n); });
+    var o = opt || {}, zero = new Float32Array(24);
     gl.uniform1f(U.uFine, o.fine == null ? .5 : o.fine); gl.uniform1f(U.uGlow, o.glow == null ? .5 : o.glow);
     gl.uniform3fv(U.uDeep, o.deep || [.047, .063, .102]); gl.uniform3fv(U.uMid, o.mid || [.16, .21, .35]); gl.uniform3fv(U.uHi, o.hi || [.62, .68, .80]);
     return {
-      render: function (t, ptr) {
+      render: function (t, now, rips) {
         var s = Math.min(window.devicePixelRatio || 1, 2) * (o.scale || .7), w = Math.max(2, Math.round(cv.clientWidth * s)), h = Math.max(2, Math.round(cv.clientHeight * s));
         if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
         gl.viewport(0, 0, w, h); gl.uniform2f(U.uRes, w, h); gl.uniform1f(U.uTime, t);
-        var p = ptr || [0.5, 0.5, 0]; gl.uniform3f(U.uPtr, p[0] * (w / h), p[1], p[2]);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.uniform1f(U.uNow, now || 0); gl.uniform4fv(U.uRip, rips || zero);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
     };
   }
@@ -281,19 +290,27 @@
     var cv = h("canvas", { "aria-hidden": "true" }), hint = h("div", { "class": "hero-hint" }, [S.heroHint || ""]);
     var el = h("header", { "class": "hero" }, [cv, h("div", { "class": "hero-top" }, [h("span", {}, [S.season || ""])]),
       h("div", { "class": "hero-main" }, [h1, h("p", {}, [S.heroText || ""])]), hint]);
-    var px = 0, py = 0, strength = 0, t0 = performance.now(), W0 = 1, H0 = 1;
-    var water = initWater(cv, { fine: .55, glow: .30, scale: .6, mid: [.12, .17, .28] }), running = true;
+    var t0 = performance.now(), water = initWater(cv, { fine: .55, glow: .30, scale: .6, mid: [.12, .17, .28] }), running = true;
     if (!water) { var nc = h("canvas", { "aria-hidden": "true" }); cv.parentNode.replaceChild(nc, cv); cv = nc; }
-    function move(e) {
-      var r = el.getBoundingClientRect(); px = e.clientX - r.left; py = e.clientY - r.top; W0 = r.width || 1; H0 = r.height || 1;
-      strength = Math.min(1, strength + .35); hint.classList.add("gone");
+    var px = 0, strength = 0, rips = new Float32Array(24), ri = 0, lx = -999, ly = -999, lt = 0;
+    function drop(x, y, w) {
+      var r = el.getBoundingClientRect(), W = r.width || 1, H = r.height || 1;
+      rips[ri * 4] = (x - r.left) / H; rips[ri * 4 + 1] = 1 - (y - r.top) / H; rips[ri * 4 + 2] = (performance.now() - t0) / 1000; rips[ri * 4 + 3] = w;
+      ri = (ri + 1) % 6; px = x - r.left; strength = Math.min(1, strength + .35); hint.classList.add("gone");
     }
-    el.addEventListener("pointermove", move); el.addEventListener("pointerdown", move);
+    function touch(e, w, force) {
+      var p = (e.touches && e.touches[0]) || e, now = performance.now(), dx = p.clientX - lx, dy = p.clientY - ly;
+      if (force || dx * dx + dy * dy > 900 || now - lt > 260) { lx = p.clientX; ly = p.clientY; lt = now; drop(p.clientX, p.clientY, w); }
+    }
+    el.addEventListener("pointermove", function (e) { if (e.pointerType !== "touch") touch(e, .8, false); });
+    el.addEventListener("pointerdown", function (e) { if (e.pointerType !== "touch") touch(e, 1.1, true); });
+    el.addEventListener("touchstart", function (e) { touch(e, 1.1, true); }, { passive: true });
+    el.addEventListener("touchmove", function (e) { touch(e, .9, false); }, { passive: true });
     function ease(x) { return 1 - Math.pow(1 - x, 3); }
     function draw(now) {
       var t = (now - t0) / 1000;
       if (water) {
-        water.render(reduce ? 6 : 6 + t * .55 + window.scrollY * .002, [px / W0, 1 - py / H0, strength]);
+        water.render(reduce ? 6 : 6 + t * .55 + window.scrollY * .002, t, reduce ? null : rips);
       } else {
         var ctx = fit(cv), W = cv.clientWidth, H = cv.clientHeight;
         if (W && H) {
