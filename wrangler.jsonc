@@ -6,5 +6,11 @@
     "directory": ".",
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "ORDERS",
+      "id": "c7653330478a49b0b675af94dec7130e"
+    }
+  ]
 }
