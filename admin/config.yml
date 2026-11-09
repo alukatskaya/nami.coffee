@@ -1,7 +1,7 @@
 # Налаштування адмінки (Sveltia CMS).
 backend:
   name: github
-  repo: alukatskaya/namiorder
+  repo: alukatskaya/nami.coffee
   branch: main
 
 media_folder: assets/uploads
